@@ -153,14 +153,16 @@ func Create(file string, maxChannels int) (*FFmpeg, error) {
 	}
 
 	// Debug
-	log.Printf("Input: %v %v %v",
+	log.Printf("Input: %v %v %v %v",
 		C.GoString(stream.codec.codec.name),
 		C.GoString(C.av_get_sample_fmt_name(int32(stream.codec.sample_fmt))),
-		C.av_get_channel_layout_nb_channels(stream.codec.channel_layout))
-	log.Printf("Output: %v %v %v (remap: %v)",
+		C.av_get_channel_layout_nb_channels(stream.codec.channel_layout),
+		stream.codec.sample_rate)
+	log.Printf("Output: %v %v %v %v (remap: %v)",
 		C.GoString(stream.codec.codec.name),
 		C.GoString(C.av_get_sample_fmt_name(int32(resampledFrame.format))),
 		C.av_get_channel_layout_nb_channels(resampledFrame.channel_layout),
+		resampledFrame.sample_rate,
 		remapper != nil)
 
 	success = true
@@ -191,7 +193,7 @@ func (f *FFmpeg) Close() {
 }
 
 func (f *FFmpeg) SampleRate() int {
-	return int(f.audioStream().codec.sample_rate)
+	return int(f.resampledFrame.sample_rate)
 }
 
 func (f *FFmpeg) BytesPerSample() int {
