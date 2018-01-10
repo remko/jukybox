@@ -53,7 +53,7 @@ func (p *PortAudioPlayer) Stop() {
 	}
 }
 
-func (p *PortAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int) error {
+func (p *PortAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int, isSideAndBackFlipped bool) error {
 	p.numChannels = numChannels
 	p.bytesPerSample = bytesPerSample
 	outputParameters := C.PaStreamParameters{
