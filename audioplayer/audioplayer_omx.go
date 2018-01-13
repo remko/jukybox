@@ -40,12 +40,8 @@ func Create() (*OMXAudioPlayer, error) {
 	}, nil
 }
 
-func (p *OMXAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int, isSideAndBackFlipped bool) error {
-	flip := 0
-	if isSideAndBackFlipped {
-		flip = 1
-	}
-	if ret := C.OMXClient_Start(p.client, C.int(numChannels), C.int(bytesPerSample<<3), C.int(sampleRate), C.int(flip)); ret != 0 {
+func (p *OMXAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int) error {
+	if ret := C.OMXClient_Start(p.client, C.int(numChannels), C.int(bytesPerSample<<3), C.int(sampleRate)); ret != 0 {
 		return fmt.Errorf("error start")
 	}
 	return nil

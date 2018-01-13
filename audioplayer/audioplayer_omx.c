@@ -41,9 +41,12 @@ OMXClient* OMXClient_Create() {
   return client;
 }
 
-int OMXClient_Start(OMXClient* client, int numChannels, int bitDepth, int sampleRate, int isSideAndBackFlipped) {
+int OMXClient_Start(OMXClient* client, int numChannels, int bitDepth, int sampleRate) {
   OMX_ERRORTYPE omxErr;
 
+  /* uint32_t bitDepth = 32; */
+  /* uint32_t numChannels = 2; */
+  /* uint32_t sampleRate = 48000; */
   uint32_t bufferSize = (BUFFER_SIZE_SAMPLES * bitDepth * OUT_CHANNELS(numChannels))>>3;;
   uint32_t numBuffers = 10;
 
@@ -111,14 +114,6 @@ int OMXClient_Start(OMXClient* client, int numChannels, int bitDepth, int sample
       pcm.eChannelMapping[1] = OMX_AUDIO_ChannelRF;
       pcm.eChannelMapping[0] = OMX_AUDIO_ChannelLF;
       break;
-  }
-  if (isSideAndBackFlipped != 0) {
-    OMX_AUDIO_CHANNELTYPE c7 = pcm.eChannelMapping[7];
-    OMX_AUDIO_CHANNELTYPE c6 = pcm.eChannelMapping[6];
-    pcm.eChannelMapping[7] = pcm.eChannelMapping[5];
-    pcm.eChannelMapping[6] = pcm.eChannelMapping[4];
-    pcm.eChannelMapping[5] = c7;
-    pcm.eChannelMapping[4] = c6;
   }
   omxErr = OMX_SetParameter(ILC_GET_HANDLE(client->component), OMX_IndexParamAudioPcm, &pcm);
   assert(omxErr == OMX_ErrorNone);

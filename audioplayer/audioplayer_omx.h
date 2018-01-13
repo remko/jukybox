@@ -11,7 +11,7 @@ typedef struct {
 
 OMXClient* OMXClient_Create();
 int OMXClient_Write(OMXClient* client, const char* data, int len);
-int OMXClient_Start(OMXClient* client, int numChannels, int bitsPerSample, int sampleRate, int isSideAndBackFlipped);
+int OMXClient_Start(OMXClient* client, int numChannels, int bitsPerSample, int sampleRate);
 void OMXClient_Stop(OMXClient* client);
 void OMXClient_Destroy(OMXClient* client);
 

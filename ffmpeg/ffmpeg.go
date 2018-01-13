@@ -10,6 +10,8 @@ package ffmpeg
 int averror(int c) {
 	return AVERROR(c);
 }
+
+int channelMap[] = {0, 1, 2, 3, 6, 7, -1, -1};
 */
 import "C"
 
@@ -29,11 +31,13 @@ type FFmpeg struct {
 	audioStreamIndex int
 	sampleFormat     C.enum_AVSampleFormat
 	resampler        *C.struct_SwrContext
+	remapper         *C.struct_SwrContext
 
 	// State for reading
 	readStarted    bool
 	frame          *C.AVFrame
 	resampledFrame *C.AVFrame
+	remappedFrame  *C.AVFrame
 }
 
 type AudioFrame struct {
@@ -126,17 +130,40 @@ func Create(file string, maxChannels int) (*FFmpeg, error) {
 		stream.codec.sample_rate,
 		0, nil)
 
+	// Determine remapping
+	remappedFrame := C.av_frame_alloc()
+	remappedFrame.channel_layout = resampledFrame.channel_layout
+	remappedFrame.sample_rate = resampledFrame.sample_rate
+	remappedFrame.format = resampledFrame.format
+	remapChannels :=
+		C.av_get_channel_layout_nb_channels(resampledFrame.channel_layout) == 8 &&
+			C.av_get_channel_layout_nb_channels(stream.codec.channel_layout) == 6 &&
+			(stream.codec.channel_layout&C.AV_CH_SIDE_LEFT) != 0 &&
+			(stream.codec.channel_layout&C.AV_CH_BACK_LEFT) == 0
+	var remapper *C.struct_SwrContext
+	if remapChannels {
+		remapper = C.swr_alloc_set_opts(nil,
+			C.int64_t(resampledFrame.channel_layout),
+			int32(resampledFrame.format),
+			resampledFrame.sample_rate,
+			C.int64_t(resampledFrame.channel_layout),
+			int32(resampledFrame.format),
+			resampledFrame.sample_rate,
+			0, nil)
+	}
+
 	// Debug
 	log.Printf("Input: %v %v %v %v",
 		C.GoString(stream.codec.codec.name),
 		C.GoString(C.av_get_sample_fmt_name(int32(stream.codec.sample_fmt))),
 		C.av_get_channel_layout_nb_channels(stream.codec.channel_layout),
 		stream.codec.sample_rate)
-	log.Printf("Output: %v %v %v %v",
+	log.Printf("Output: %v %v %v %v (remap: %v)",
 		C.GoString(stream.codec.codec.name),
 		C.GoString(C.av_get_sample_fmt_name(int32(resampledFrame.format))),
 		C.av_get_channel_layout_nb_channels(resampledFrame.channel_layout),
-		resampledFrame.sample_rate)
+		resampledFrame.sample_rate,
+		remapper != nil)
 
 	success = true
 	return &FFmpeg{
@@ -145,13 +172,19 @@ func Create(file string, maxChannels int) (*FFmpeg, error) {
 		audioStreamIndex: audioStreamIndex,
 		sampleFormat:     sampleFormat,
 		resampler:        resampler,
+		remapper:         remapper,
 
 		frame:          frame,
 		resampledFrame: resampledFrame,
+		remappedFrame:  remappedFrame,
 	}, nil
 }
 
 func (f *FFmpeg) Close() {
+	if f.remapper != nil {
+		C.swr_free(&f.remapper)
+	}
+	C.av_frame_free(&f.remappedFrame)
 	C.swr_free(&f.resampler)
 	C.av_frame_free(&f.resampledFrame)
 	C.av_frame_free(&f.frame)
@@ -161,14 +194,6 @@ func (f *FFmpeg) Close() {
 
 func (f *FFmpeg) SampleRate() int {
 	return int(f.resampledFrame.sample_rate)
-}
-
-func (f *FFmpeg) IsSideAndBackFlipped() bool {
-	stream := f.audioStream()
-	return C.av_get_channel_layout_nb_channels(f.resampledFrame.channel_layout) == 8 &&
-		C.av_get_channel_layout_nb_channels(stream.codec.channel_layout) == 6 &&
-		(stream.codec.channel_layout&C.AV_CH_SIDE_LEFT) != 0 &&
-		(stream.codec.channel_layout&C.AV_CH_BACK_LEFT) == 0
 }
 
 func (f *FFmpeg) BytesPerSample() int {
@@ -186,13 +211,23 @@ func (f *FFmpeg) audioStream() *C.struct_AVStream {
 func (f *FFmpeg) ReadAudioFrame() (*AudioFrame, error) {
 	stream := f.audioStream()
 	resampledFrame := f.resampledFrame
+	remappedFrame := f.remappedFrame
 	frame := f.frame
 	resampler := f.resampler
+	remapper := f.remapper
 
 	// Initialize reader
 	if !f.readStarted {
 		if err := C.swr_init(resampler); err != 0 {
 			return nil, avError("initialize resampler", err)
+		}
+		if remapper != nil {
+			if err := C.swr_set_channel_mapping(remapper, &C.channelMap[0]); err != 0 {
+				return nil, avError("set channel mapping", err)
+			}
+			if err := C.swr_init(remapper); err != 0 {
+				return nil, avError("initialize remapper", err)
+			}
 		}
 		f.readStarted = true
 	}
@@ -236,12 +271,19 @@ func (f *FFmpeg) ReadAudioFrame() (*AudioFrame, error) {
 	if err := C.swr_convert_frame(resampler, resampledFrame, frame); err != 0 {
 		return nil, avError("resample frame", err)
 	}
+	outFrame := resampledFrame
+	if remapper != nil {
+		if err := C.swr_convert_frame(remapper, remappedFrame, resampledFrame); err != 0 {
+			return nil, avError("remap frame", err)
+		}
+		outFrame = remappedFrame
+	}
 
 	numChannels := C.av_get_channel_layout_nb_channels(resampledFrame.channel_layout)
 	bytesPerSample := C.av_get_bytes_per_sample(int32(resampledFrame.format))
-	lineSize := resampledFrame.nb_samples * bytesPerSample * numChannels
+	lineSize := outFrame.nb_samples * bytesPerSample * numChannels
 	return &AudioFrame{
-		Data:     C.GoBytes(unsafe.Pointer(*resampledFrame.extended_data), lineSize),
+		Data:     C.GoBytes(unsafe.Pointer(*outFrame.extended_data), lineSize),
 		Position: time.Duration(baseToDuration(stream, int64(frame.pts))),
 	}, nil
 }

@@ -261,7 +261,7 @@ func (app *App) currentFile() *MediaFile {
 }
 
 func (app *App) startAudioPlayer() {
-	err := app.audioPlayer.Start(app.decoder.NumChannels(), app.decoder.BytesPerSample(), app.decoder.SampleRate(), app.decoder.IsSideAndBackFlipped())
+	err := app.audioPlayer.Start(app.decoder.NumChannels(), app.decoder.BytesPerSample(), app.decoder.SampleRate())
 	if err != nil {
 		log.Printf("ERROR: %v", err)
 	}

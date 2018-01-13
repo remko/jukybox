@@ -21,7 +21,7 @@ func play(file string) error {
 	}
 	defer decoder.Close()
 
-	player.Start(decoder.NumChannels(), decoder.BytesPerSample(), decoder.SampleRate(), decoder.IsSideAndBackFlipped())
+	player.Start(decoder.NumChannels(), decoder.BytesPerSample(), decoder.SampleRate())
 
 	// skipped := false
 	for {
