@@ -17,14 +17,14 @@ func convert(file string, out string) error {
 	f, err := os.Create(out)
 	defer f.Close()
 	for {
-		packet, err := decoder.ReadAudioPacket()
+		frame, err := decoder.ReadAudioFrame()
 		if err != nil {
 			return err
 		}
-		if packet == nil {
+		if frame == nil {
 			break
 		}
-		f.Write(packet.Data)
+		f.Write(frame.Data)
 	}
 	fmt.Printf("Done!\n")
 	return nil

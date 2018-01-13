@@ -16,12 +16,15 @@ int channelMap[] = {0, 1, 2, 3, 6, 7, -1, -1};
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 	"unsafe"
 )
+
+var EOF = errors.New("EOF")
 
 var initialize sync.Once
 
@@ -41,6 +44,11 @@ type FFmpeg struct {
 }
 
 type AudioFrame struct {
+	Data     []byte
+	Position time.Duration
+}
+
+type AudioPacket struct {
 	Data     []byte
 	Position time.Duration
 }
@@ -235,19 +243,11 @@ func (f *FFmpeg) ReadAudioFrame() (*AudioFrame, error) {
 	// Read a packet until we have a frame
 	for {
 		var packet C.AVPacket
-		for {
-			if err := C.av_read_frame(f.formatCtx, &packet); err != 0 {
-				if err == C.AVERROR_EOF {
-					return nil, nil
-				} else {
-					return nil, avError("read packet", err)
-				}
-			}
-
-			if packet.stream_index == C.int(f.audioStreamIndex) {
-				break
+		if err := f.readPacket(&packet); err != nil {
+			if err == EOF {
+				return nil, nil
 			} else {
-				C.av_packet_unref(&packet)
+				return nil, err
 			}
 		}
 		defer C.av_packet_unref(&packet)
@@ -288,12 +288,49 @@ func (f *FFmpeg) ReadAudioFrame() (*AudioFrame, error) {
 	}, nil
 }
 
+func (f *FFmpeg) readPacket(packet *C.AVPacket) error {
+	for {
+		if err := C.av_read_frame(f.formatCtx, packet); err != 0 {
+			if err == C.AVERROR_EOF {
+				return EOF
+			} else {
+				return avError("read packet", err)
+			}
+		}
+
+		if packet.stream_index == C.int(f.audioStreamIndex) {
+			break
+		} else {
+			C.av_packet_unref(packet)
+		}
+	}
+	return nil
+}
+
 func (f *FFmpeg) Seek(position time.Duration) error {
 	log.Printf("Seeking to %v", position)
 	if err := C.av_seek_frame(f.formatCtx, -1, C.int64_t(position/1000), 0); err != 0 {
 		return avError("seek", err)
 	}
 	return nil
+}
+
+func (f *FFmpeg) ReadAudioPacket() (*AudioPacket, error) {
+	var packet C.AVPacket
+	if err := f.readPacket(&packet); err != nil {
+		if err == EOF {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+	defer C.av_packet_unref(&packet)
+
+	stream := f.audioStream()
+	return &AudioPacket{
+		Data:     C.GoBytes(unsafe.Pointer(packet.data), packet.size),
+		Position: time.Duration(baseToDuration(stream, int64(packet.pts))),
+	}, nil
 }
 
 func avError(message string, err C.int) error {
