@@ -42,6 +42,8 @@ func runConsole(buttonEvents chan<- Button, termEvents <-chan termbox.Event) {
 						buttonEvents <- AButton
 					case 'b', 'B':
 						buttonEvents <- BButton
+					case 'q', 'Q':
+						buttonEvents <- PowerButton
 					}
 				}
 			}
@@ -82,7 +84,7 @@ func DestroyConsole() {
 var previousInfo *DisplayInfo
 
 func DrawConsole(info DisplayInfo) {
-	if previousInfo == nil || *previousInfo != info {
+	if previousInfo == nil || previousInfo.title != info.title || previousInfo.chapterIndex != info.chapterIndex || previousInfo.stateIcon != info.stateIcon {
 		previousInfo = &info
 		log.Printf("%#v", info)
 		// displayEvents <- displayEvent{info: info}

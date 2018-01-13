@@ -38,6 +38,7 @@ type App struct {
 
 	audioPlayer audioplayer.AudioPlayer
 	decoder     *ffmpeg.FFmpeg
+	passthrough bool
 
 	playerState      PlayerState
 	currentFileIndex int
@@ -172,7 +173,13 @@ outerLoop:
 			case <-signalEvents:
 				break outerLoop
 			default:
-				frame, err := app.decoder.ReadAudioFrame()
+				var frame *ffmpeg.AudioFrame
+				var err error
+				if app.passthrough {
+					frame, err = app.decoder.ReadAudioPacket()
+				} else {
+					frame, err = app.decoder.ReadAudioFrame()
+				}
 				if err != nil {
 					log.Printf("ERROR: %v", err)
 				}
@@ -261,7 +268,13 @@ func (app *App) currentFile() *MediaFile {
 }
 
 func (app *App) startAudioPlayer() {
-	err := app.audioPlayer.Start(app.decoder.NumChannels(), app.decoder.BytesPerSample(), app.decoder.SampleRate())
+	codec, codecProfile := app.decoder.Codec()
+	app.passthrough = audioplayer.IsPassthroughSupported(codec, codecProfile, app.decoder.SampleRate())
+	encoding := audioplayer.PCMEncoding
+	if app.passthrough {
+		encoding = codec
+	}
+	err := app.audioPlayer.Start(app.decoder.NumChannels(), app.decoder.BytesPerSample(), app.decoder.SampleRate(), app.decoder.IsFloatPlanar(), encoding)
 	if err != nil {
 		log.Printf("ERROR: %v", err)
 	}

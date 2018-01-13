@@ -53,7 +53,7 @@ func (p *PortAudioPlayer) Stop() {
 	}
 }
 
-func (p *PortAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int) error {
+func (p *PortAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int, isFloatPlanar bool, encoding string) error {
 	p.numChannels = numChannels
 	p.bytesPerSample = bytesPerSample
 	outputParameters := C.PaStreamParameters{
@@ -94,4 +94,8 @@ func (p *PortAudioPlayer) Write(data []byte) error {
 
 func paError(err C.PaError) error {
 	return fmt.Errorf("PA Error: %v %v", err, C.GoString(C.Pa_GetErrorText(err)))
+}
+
+func IsPassthroughSupported(codec string, codecProfile string, samplerate int) bool {
+	return false
 }

@@ -40,8 +40,21 @@ func Create() (*OMXAudioPlayer, error) {
 	}, nil
 }
 
-func (p *OMXAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int) error {
-	if ret := C.OMXClient_Start(p.client, C.int(numChannels), C.int(bytesPerSample<<3), C.int(sampleRate)); ret != 0 {
+func (p *OMXAudioPlayer) Start(numChannels int, bytesPerSample int, sampleRate int, isFloatPlanar bool, encoding string) error {
+	cIsFloatPlanar := 0
+	if isFloatPlanar {
+		cIsFloatPlanar = 1
+	}
+	var cEncoding C.OMXClientEncoding
+	switch encoding {
+	case "dts":
+		cEncoding = C.OMXClientEncoding_DTS
+	case "ac3", "eac3":
+		cEncoding = C.OMXClientEncoding_DDP
+	default:
+		cEncoding = C.OMXClientEncoding_PCM
+	}
+	if ret := C.OMXClient_Start(p.client, C.int(numChannels), C.int(bytesPerSample<<3), C.int(sampleRate), C.int(cIsFloatPlanar), cEncoding); ret != 0 {
 		return fmt.Errorf("error start")
 	}
 	return nil
@@ -64,4 +77,15 @@ func (p *OMXAudioPlayer) Write(data []byte) error {
 
 func omxError(msg string, err C.OMX_ERRORTYPE) error {
 	return fmt.Errorf("%s: %d", msg, err)
+}
+
+func IsPassthroughSupported(codec string, codecProfile string, samplerate int) bool {
+	switch codec {
+	case "dts":
+		return samplerate != 44100
+	case "eac3", "ac3":
+		return true
+	default:
+		return false
+	}
 }

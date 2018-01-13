@@ -21,11 +21,24 @@ func play(file string) error {
 	}
 	defer decoder.Close()
 
-	player.Start(decoder.NumChannels(), decoder.BytesPerSample(), decoder.SampleRate())
+	codec, codecProfile := decoder.Codec()
+	fmt.Printf("Codec: %v (%v)\n", codec, codecProfile)
+	passthrough := audioplayer.IsPassthroughSupported(codec, codecProfile, decoder.SampleRate())
+	encoding := audioplayer.PCMEncoding
+	if passthrough {
+		encoding = codec
+	}
 
-	// skipped := false
+	player.Start(decoder.NumChannels(), decoder.BytesPerSample(), decoder.SampleRate(), decoder.IsFloatPlanar(), encoding)
+
 	for {
-		frame, err := decoder.ReadAudioFrame()
+		var frame *ffmpeg.AudioFrame
+		var err error
+		if passthrough {
+			frame, err = decoder.ReadAudioPacket()
+		} else {
+			frame, err = decoder.ReadAudioFrame()
+		}
 		if err != nil {
 			return err
 		}
@@ -35,12 +48,6 @@ func play(file string) error {
 		if err := player.Write(frame.Data); err != nil {
 			return err
 		}
-		// log.Printf("%v\n", frame.Position)
-		// if !skipped && frame.Position > 8*time.Second {
-		// 	decoder.Seek(40 * 60 * time.Second)
-		// 	decoder.Seek((41*60 + 45) * time.Second)
-		// 	skipped = true
-		// }
 	}
 	fmt.Printf("Done!\n")
 	return nil
