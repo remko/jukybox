@@ -16,26 +16,12 @@ type Chapter struct {
 	end   time.Duration
 }
 
-const (
-	UnknownCodec = iota
-	FLAC
-)
-
-type Track struct {
-	Codec int
-}
-
 type MediaFile struct {
 	file     string
 	title    string
 	artist   string
 	chapters []Chapter
 	duration time.Duration
-	tracks   []Track
-}
-
-func (m MediaFile) isPassthroughSupported() bool {
-	return len(m.tracks) > 0 && m.tracks[0].Codec != FLAC
 }
 
 type MediaParser struct {
@@ -47,8 +33,6 @@ type MediaParser struct {
 	currentChapterStart *int64
 	currentChapterEnd   *int64
 	currentChapterName  *string
-	currentTrackCodec   *string
-	currentTrackIsAudio bool
 	mediaFile           *MediaFile
 }
 
@@ -62,9 +46,6 @@ func (p *MediaParser) HandleMasterBegin(id mkvparse.ElementID, info mkvparse.Ele
 		p.currentChapterStart = nil
 		p.currentChapterEnd = nil
 		p.currentChapterName = nil
-	} else if id == mkvparse.TrackEntryElement {
-		p.currentTrackCodec = nil
-		p.currentTrackIsAudio = false
 	}
 	return true, nil
 }
@@ -87,14 +68,6 @@ func (p *MediaParser) HandleMasterEnd(id mkvparse.ElementID, info mkvparse.Eleme
 			chapter.title = *p.currentChapterName
 		}
 		p.mediaFile.chapters = append(p.mediaFile.chapters, chapter)
-	} else if id == mkvparse.TrackEntryElement {
-		if p.currentTrackCodec != nil && p.currentTrackIsAudio {
-			codec := UnknownCodec
-			if *p.currentTrackCodec == "A_FLAC" {
-				codec = FLAC
-			}
-			p.mediaFile.tracks = append(p.mediaFile.tracks, Track{Codec: codec})
-		}
 	}
 	return nil
 }
@@ -108,8 +81,6 @@ func (p *MediaParser) HandleString(id mkvparse.ElementID, value string, info mkv
 		p.mediaFile.title = value
 	} else if id == mkvparse.ChapStringElement {
 		p.currentChapterName = &value
-	} else if id == mkvparse.CodecIDElement {
-		p.currentTrackCodec = &value
 	}
 	return nil
 }
@@ -121,8 +92,6 @@ func (p *MediaParser) HandleInteger(id mkvparse.ElementID, value int64, info mkv
 		p.currentChapterStart = &value
 	} else if id == mkvparse.ChapterTimeEndElement {
 		p.currentChapterEnd = &value
-	} else if id == mkvparse.TrackTypeElement {
-		p.currentTrackIsAudio = value == 0x2
 	} else if id == mkvparse.TimecodeScaleElement {
 		p.timecodeScale = value
 	}
@@ -189,11 +158,7 @@ func GetMedia(sourceDirs []string) []*MediaFile {
 			if err != nil {
 				log.Printf("Error loading %s: %v", path, err)
 			} else {
-				if len(file.tracks) > 0 {
-					mediaFiles = append(mediaFiles, file)
-				} else {
-					log.Printf("%s: File contained no tracks\n", path)
-				}
+				mediaFiles = append(mediaFiles, file)
 			}
 			return nil
 		})
