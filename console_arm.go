@@ -22,15 +22,15 @@ func runConsole(buttonEvents chan<- Button, termEvents <-chan termbox.Event) {
 				if ev.Ch == 0 {
 					switch ev.Key {
 					case termbox.KeyArrowUp:
-						buttonEvents <- UpButton
+						buttonEvents <- PreviousAlbumButton
 					case termbox.KeyArrowDown:
-						buttonEvents <- DownButton
+						buttonEvents <- NextAlbumButton
 					case termbox.KeyArrowLeft:
-						buttonEvents <- LeftButton
+						buttonEvents <- PreviousTrackButton
 					case termbox.KeyArrowRight:
-						buttonEvents <- RightButton
+						buttonEvents <- NextTrackButton
 					case termbox.KeyEnter:
-						buttonEvents <- CenterButton
+						buttonEvents <- PlayPauseButton
 					case termbox.KeyCtrlC:
 						log.Printf("Console: Ctrl-C\n")
 						buttonEvents <- PowerButton

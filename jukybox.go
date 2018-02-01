@@ -4,11 +4,11 @@ type Button int
 
 const (
 	_ = iota
-	UpButton
-	DownButton
-	LeftButton
-	RightButton
-	CenterButton
+	PreviousAlbumButton
+	NextAlbumButton
+	PreviousTrackButton
+	NextTrackButton
+	PlayPauseButton
 	AButton
 	BButton
 	PowerButton

@@ -52,15 +52,15 @@ func (d *Display) run() {
 				// fmt.Printf("typed key %v, glyph %v, chord %v\n", event.Key, event.Glyph, event.Chord)
 				switch event.Key {
 				case wde.KeyDownArrow:
-					d.buttonChannel <- DownButton
+					d.buttonChannel <- NextAlbumButton
 				case wde.KeyUpArrow:
-					d.buttonChannel <- UpButton
+					d.buttonChannel <- PreviousAlbumButton
 				case wde.KeyLeftArrow:
-					d.buttonChannel <- LeftButton
+					d.buttonChannel <- PreviousTrackButton
 				case wde.KeyRightArrow:
-					d.buttonChannel <- RightButton
+					d.buttonChannel <- NextTrackButton
 				case wde.KeyReturn:
-					d.buttonChannel <- CenterButton
+					d.buttonChannel <- PlayPauseButton
 				case wde.KeyA:
 					d.buttonChannel <- AButton
 				case wde.KeyB:

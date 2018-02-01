@@ -127,6 +127,7 @@ func (app *App) displayMessage(message string) {
 
 func (app *App) run() {
 	CreateConsole(app.buttonEvents)
+	CreateRemote(app.buttonEvents)
 
 	sourceDirs := []string{"/media", "./media"}
 
@@ -215,15 +216,15 @@ func (app *App) handleButton(button Button) bool {
 	switch button {
 	case PowerButton:
 		return false
-	case DownButton:
+	case NextAlbumButton:
 		app.advanceFile(1, true)
-	case UpButton:
+	case PreviousAlbumButton:
 		app.advanceFile(-1, true)
-	case LeftButton:
+	case NextTrackButton:
 		app.advanceChapter(-1)
-	case RightButton:
+	case PreviousTrackButton:
 		app.advanceChapter(1)
-	case CenterButton:
+	case PlayPauseButton:
 		switch app.playerState {
 		case Playing:
 			app.playerState = Stopped
