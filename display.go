@@ -51,6 +51,14 @@ type DisplayDrawer struct {
 	symbolsCtx *freetype.Context
 }
 
+type Display interface {
+	Image() draw.Image
+	Flush()
+	Run()
+	Stop()
+	Draw(info DisplayInfo)
+}
+
 func createFontContext(fontFile string, size float64) *freetype.Context {
 	b, err := Asset(fontFile)
 	if err != nil {
@@ -77,7 +85,7 @@ func CreateDisplayDrawer() *DisplayDrawer {
 	}
 }
 
-func (d *DisplayDrawer) Draw(display *Display, info DisplayInfo) {
+func (d *DisplayDrawer) Draw(display Display, info DisplayInfo) {
 	s := display.Image()
 	draw.Draw(s, s.Bounds(), image.Black, image.ZP, draw.Src)
 	d.boldCtx.SetClip(s.Bounds())

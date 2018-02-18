@@ -11,14 +11,14 @@ import (
 	"os"
 )
 
-type Display struct {
+type WDEDisplay struct {
 	buttonChannel chan<- Button
 	displayEvents chan DisplayInfo
 	window        wde.Window
 	drawer        *DisplayDrawer
 }
 
-func CreateDisplay(buttonChannel chan<- Button) *Display {
+func CreateDisplay(buttonChannel chan<- Button) *WDEDisplay {
 	dw, err := wde.NewWindow(DISPLAY_WIDTH, DISPLAY_HEIGHT)
 	if err != nil {
 		fmt.Printf("Error: %v", err)
@@ -27,7 +27,7 @@ func CreateDisplay(buttonChannel chan<- Button) *Display {
 	dw.SetTitle("JukyBox")
 	dw.Show()
 
-	return &Display{
+	return &WDEDisplay{
 		buttonChannel: buttonChannel,
 		displayEvents: make(chan DisplayInfo),
 		window:        dw,
@@ -35,12 +35,12 @@ func CreateDisplay(buttonChannel chan<- Button) *Display {
 	}
 }
 
-func (d *Display) Run() {
+func (d *WDEDisplay) Run() {
 	go d.run()
 	wde.Run()
 }
 
-func (d *Display) run() {
+func (d *WDEDisplay) run() {
 	events := d.window.EventChan()
 	s := d.window.Screen()
 	draw.Draw(s, s.Bounds(), image.Black, image.ZP, draw.Src)
@@ -77,21 +77,21 @@ func (d *Display) run() {
 	}
 }
 
-func (d *Display) Stop() {
+func (d *WDEDisplay) Stop() {
 	d.window.Close()
 	wde.Stop()
 }
 
-func (d *Display) Draw(info DisplayInfo) {
+func (d *WDEDisplay) Draw(info DisplayInfo) {
 	d.displayEvents <- info
 }
 
 // Can only be called from the DisplayDrawer
-func (d *Display) Flush() {
+func (d *WDEDisplay) Flush() {
 	d.window.FlushImage()
 }
 
 // Can only be called from the DisplayDrawer
-func (d *Display) Image() draw.Image {
+func (d *WDEDisplay) Image() draw.Image {
 	return d.window.Screen()
 }

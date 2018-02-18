@@ -31,7 +31,7 @@ func findChapter(file *MediaFile, position time.Duration) (Chapter, int, bool) {
 type App struct {
 	buttonEvents chan Button
 	done         chan bool
-	display      *Display
+	display      Display
 
 	mediaFiles       []*MediaFile
 	mediaFilesByFile map[string]mediaFileAndIndex
