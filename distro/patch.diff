@@ -1,0 +1,109 @@
+diff --git a/scripts/common b/scripts/common
+index f18fd89..8dc240f 100644
+--- a/scripts/common
++++ b/scripts/common
+@@ -91,7 +91,7 @@ export -f on_chroot
+ 
+ update_issue() {
+ 	local GIT_HASH
+-	GIT_HASH=$(git rev-parse HEAD)
++	GIT_HASH=dev
+ 	echo -e "Raspberry Pi reference ${IMG_DATE}\nGenerated using pi-gen, https://github.com/RPi-Distro/pi-gen, ${GIT_HASH}, ${1}" > "${ROOTFS_DIR}/etc/rpi-issue"
+ }
+ export -f update_issue
+diff --git a/stage1/02-net-tweaks/00-patches/01-hosts.diff b/stage1/02-net-tweaks/00-patches/01-hosts.diff
+index ad07ae5..55adf14 100644
+--- a/stage1/02-net-tweaks/00-patches/01-hosts.diff
++++ b/stage1/02-net-tweaks/00-patches/01-hosts.diff
+@@ -6,4 +6,4 @@ Index: jessie-stage1/rootfs/etc/hosts
+  ff02::1		ip6-allnodes
+  ff02::2		ip6-allrouters
+  
+-+127.0.1.1	raspberrypi
+++127.0.1.1	jukybox
+diff --git a/stage1/02-net-tweaks/files/hostname b/stage1/02-net-tweaks/files/hostname
+index 41757af..3f3e00c 100644
+--- a/stage1/02-net-tweaks/files/hostname
++++ b/stage1/02-net-tweaks/files/hostname
+@@ -1 +1 @@
+-raspberrypi
++jukybox
+diff --git a/stage1/02-net-tweaks/files/interfaces b/stage1/02-net-tweaks/files/interfaces
+index 88a8c6a..629f955 100644
+--- a/stage1/02-net-tweaks/files/interfaces
++++ b/stage1/02-net-tweaks/files/interfaces
+@@ -1,4 +1,3 @@
+ auto lo
+ 
+ iface lo inet loopback
+-iface eth0 inet dhcp
+diff --git a/stage2/01-sys-tweaks/00-debconf b/stage2/01-sys-tweaks/00-debconf
+index 41e9435..5b6a3de 100644
+--- a/stage2/01-sys-tweaks/00-debconf
++++ b/stage2/01-sys-tweaks/00-debconf
+@@ -21,7 +21,7 @@ keyboard-configuration	keyboard-configuration/altgr	select	The default for the k
+ keyboard-configuration	keyboard-configuration/model	select	Generic 105-key (Intl) PC
+ # Keymap to use:
+ # Choices: American English, Albanian, Arabic, Asturian, Bangladesh, Belarusian, Bengali, Belgian, Bosnian, Brazilian, British English, Bulgarian, Bulgarian (phonetic layout), Burmese, Canadian French, Canadian Multilingual, Catalan, Chinese, Croatian, Czech, Danish, Dutch, Dvorak, Dzongkha, Esperanto, Estonian, Ethiopian, Finnish, French, Georgian, German, Greek, Gujarati, Gurmukhi, Hebrew, Hindi, Hungarian, Icelandic, Irish, Italian, Japanese, Kannada, Kazakh, Khmer, Kirghiz, Korean, Kurdish (F layout), Kurdish (Q layout), Lao, Latin American, Latvian, Lithuanian, Macedonian, Malayalam, Nepali, Northern Sami, Norwegian, Persian, Philippines, Polish, Portuguese, Punjabi, Romanian, Russian, Serbian (Cyrillic), Sindhi, Sinhala, Slovak, Slovenian, Spanish, Swedish, Swiss French, Swiss German, Tajik, Tamil, Telugu, Thai, Tibetan, Turkish (F layout), Turkish (Q layout), Ukrainian, Uyghur, Vietnamese
+-keyboard-configuration	keyboard-configuration/xkb-keymap	select	gb
++keyboard-configuration	keyboard-configuration/xkb-keymap	select	us
+ # Compose key:
+ # Choices: No compose key, Right Alt (AltGr), Right Control, Right Logo key, Menu key, Left Logo key, Caps Lock
+ keyboard-configuration	keyboard-configuration/compose	select	No compose key
+@@ -29,4 +29,4 @@ keyboard-configuration	keyboard-configuration/compose	select	No compose key
+ keyboard-configuration	keyboard-configuration/ctrl_alt_bksp	boolean	true
+ # Keyboard layout:
+ # Choices: English (UK), English (UK) - English (UK\, Colemak), English (UK) - English (UK\, Dvorak with UK punctuation), English (UK) - English (UK\, Dvorak), English (UK) - English (UK\, Macintosh international), English (UK) - English (UK\, Macintosh), English (UK) - English (UK\, extended WinKeys), English (UK) - English (UK\, international with dead keys), Other
+-keyboard-configuration  keyboard-configuration/variant  select  English (UK)
++keyboard-configuration  keyboard-configuration/variant  select  English (US\, Dvorak)
+diff --git a/stage2/01-sys-tweaks/00-packages b/stage2/01-sys-tweaks/00-packages
+index f792f37..c77048e 100644
+--- a/stage2/01-sys-tweaks/00-packages
++++ b/stage2/01-sys-tweaks/00-packages
+@@ -1,18 +1,8 @@
+-ssh less fbset sudo psmisc strace ed ncdu crda
++ssh less fbset sudo psmisc strace ed ncdu
+ console-setup keyboard-configuration debconf-utils parted unzip
+-build-essential manpages-dev python bash-completion gdb pkg-config
+-python-rpi.gpio v4l-utils
+-avahi-daemon
+-lua5.1
+-luajit
+ hardlink ca-certificates curl
+-fake-hwclock nfs-common usbutils
+-libraspberrypi-dev libraspberrypi-doc libfreetype6-dev
+-dosfstools
+-dphys-swapfile
++fake-hwclock usbutils
+ raspberrypi-sys-mods
+-pi-bluetooth
+-apt-listchanges
+ usb-modeswitch
+ apt-transport-https
+ libpam-chksshpwd
+@@ -20,5 +10,3 @@ rpi-update
+ libmtp-runtime
+ rsync
+ htop
+-man-db
+-policykit-1
+diff --git a/stage2/01-sys-tweaks/00-patches/series b/stage2/01-sys-tweaks/00-patches/series
+index aee0402..c5d8e4b 100644
+--- a/stage2/01-sys-tweaks/00-patches/series
++++ b/stage2/01-sys-tweaks/00-patches/series
+@@ -1,5 +1,4 @@
+ 01-useradd.diff
+-02-swap.diff
+ 04-inputrc.diff
+ 05-path.diff
+ 07-resize-init.diff
+diff --git a/stage2/EXPORT_IMAGE b/stage2/EXPORT_IMAGE
+index aa8f936..544ccc6 100644
+--- a/stage2/EXPORT_IMAGE
++++ b/stage2/EXPORT_IMAGE
+@@ -1,4 +1,4 @@
+-IMG_SUFFIX="-lite"
++#IMG_SUFFIX="-lite"
+ if [ "${USE_QEMU}" = "1" ]; then
+ 	export IMG_SUFFIX="${IMG_SUFFIX}-qemu"
+ fi
