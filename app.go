@@ -220,9 +220,9 @@ func (app *App) handleButton(button Button) bool {
 		app.advanceFile(1, true)
 	case PreviousAlbumButton:
 		app.advanceFile(-1, true)
-	case NextTrackButton:
-		app.advanceChapter(-1)
 	case PreviousTrackButton:
+		app.advanceChapter(-1)
+	case NextTrackButton:
 		app.advanceChapter(1)
 	case PlayPauseButton:
 		switch app.playerState {

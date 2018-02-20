@@ -33,6 +33,13 @@ func CreateLIRCRemote(buttonEvents chan<- Button) {
 	go ir.Run()
 }
 
+var cecRemote *CECRemote
+
 func CreateRemote(buttonEvents chan<- Button) {
 	CreateLIRCRemote(buttonEvents)
+	cecRemote = CreateCECRemote(buttonEvents)
+}
+
+func DestroyRemote() {
+	cecRemote.Destroy()
 }
